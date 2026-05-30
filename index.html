@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Gestión de Deudas | Personas - Adelantos - Balances</title>
+    <title>Gestión de Deudas | Copias e Impresiones | Control de Adelantos</title>
     <!-- Librerías para exportar: SheetJS (XLSX) y jsPDF (PDF) + autoTable -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -57,7 +57,12 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        input, button {
+        .price-hint {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        input, button, select {
             padding: 12px 14px;
             border-radius: 14px;
             border: 1px solid #cbd5e1;
@@ -66,7 +71,7 @@
             transition: 0.2s;
             width: 100%;
         }
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #10b981;
             box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
@@ -109,6 +114,12 @@
         .btn-warning:hover {
             background: #d97706;
         }
+        .btn-info {
+            background: #3b82f6;
+        }
+        .btn-info:hover {
+            background: #2563eb;
+        }
         .table-wrapper {
             overflow-x: auto;
             border-radius: 16px;
@@ -120,7 +131,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 700px;
+            min-width: 900px;
         }
         th {
             background: #f1f5f9;
@@ -159,14 +170,14 @@
         .amount-counter {
             display: flex;
             align-items: center;
-            gap: 6px;
-            flex-wrap: nowrap;
+            gap: 4px;
+            flex-wrap: wrap;
         }
         .amount-counter button {
             width: 32px;
             height: 32px;
             padding: 0;
-            font-size: 1.2rem;
+            font-size: 1rem;
             border-radius: 40px;
             background: #e2e8f0;
             color: #0f172a;
@@ -174,14 +185,16 @@
             align-items: center;
             justify-content: center;
         }
-        .amount-counter button:active {
-            transform: scale(0.92);
+        .amount-counter button.small {
+            width: auto;
+            padding: 0 8px;
+            font-size: 0.75rem;
         }
         .amount-value {
             font-weight: 700;
             min-width: 60px;
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .empty-row {
             text-align: center;
@@ -212,11 +225,13 @@
             justify-content: stretch;
             margin-bottom: 16px;
             flex-direction: row;
+            flex-wrap: wrap;
         }
         .export-buttons button {
             flex: 1;
             padding: 12px;
             font-size: 0.85rem;
+            min-width: 100px;
         }
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -241,7 +256,7 @@
             letter-spacing: 1px;
         }
         .stat-value {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
             font-weight: 700;
             margin-top: 5px;
         }
@@ -260,6 +275,50 @@
             gap: 4px;
             align-items: center;
         }
+        .history-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.7rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 8px;
+        }
+        .history-item {
+            padding: 4px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-family: monospace;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .close-modal {
+            float: right;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
         @media (min-width: 640px) {
             body {
                 padding: 20px;
@@ -274,7 +333,7 @@
             }
             .field-group {
                 width: auto;
-                min-width: 180px;
+                min-width: 160px;
                 flex: 1 0 auto;
             }
             .table-wrapper {
@@ -283,21 +342,18 @@
             th, td {
                 padding: 12px 10px;
             }
+            .stat-value {
+                font-size: 1.6rem;
+            }
         }
         @media (max-width: 480px) {
             .amount-counter button {
                 width: 28px;
                 height: 28px;
-                font-size: 1rem;
-            }
-            .icon-btn {
-                padding: 4px 8px;
+                font-size: 0.9rem;
             }
             .stat-value {
-                font-size: 1.2rem;
-            }
-            .card-title {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -305,43 +361,68 @@
 <body>
 <div class="container">
     <div class="card">
-        <div class="card-title">💰 Gestión de Deudas y Adelantos</div>
+        <div class="card-title">📋 Registro de Copias e Impresiones</div>
         <div class="form-grid">
             <div class="field-group">
-                <label>👤 Nombre</label>
-                <input type="text" id="nombre" placeholder="Ej: Juan Pérez" autocomplete="off">
+                <label>👤 Seleccionar persona</label>
+                <select id="personaSelect">
+                    <option value="">-- Seleccionar o crear nueva --</option>
+                </select>
             </div>
             <div class="field-group">
-                <label>📱 Teléfono (opcional)</label>
-                <input type="text" id="telefono" placeholder="Ej: 555-1234" autocomplete="off">
+                <label>🖨️ Copias</label>
+                <input type="number" id="copias" value="0" min="0" step="1" placeholder="Cantidad">
+                <div class="price-hint">💰 $0.80 c/u</div>
             </div>
             <div class="field-group">
-                <label>💰 Monto total de la deuda</label>
-                <input type="number" id="deudaTotal" value="0" min="0" step="100" placeholder="Ej: 10000">
+                <label>📄 Impresiones</label>
+                <input type="number" id="impresiones" value="0" min="0" step="1" placeholder="Cantidad">
+                <div class="price-hint">💰 $0.20 c/u</div>
             </div>
             <div class="field-group">
-                <label>💵 Adelanto / Abono</label>
-                <input type="number" id="adelanto" value="0" min="0" step="100" placeholder="Ej: 3000">
+                <label>📅 Fecha</label>
+                <input type="date" id="fechaRegistro" value="">
+            </div>
+            <div class="field-group">
+                <label>💵 Adelanto del día</label>
+                <input type="number" id="adelantoDia" value="0" min="0" step="100" placeholder="Monto adelantado">
             </div>
             <div class="field-group">
                 <label>&nbsp;</label>
-                <button id="agregarBtn">➕ Agregar / Actualizar persona</button>
+                <button id="registrarBtn" class="btn-info">📝 Registrar consumo y adelanto</button>
             </div>
         </div>
-        <div class="info-note">
-            💾 <strong>Base de datos local:</strong> Los datos se guardan automáticamente. Al recargar la página se mantiene la información.<br>
-            💡 <strong>Cómo funciona:</strong> Cada persona tiene una deuda total y un monto adelantado. El saldo pendiente = Deuda - Adelanto.<br>
-            📊 <strong>Acciones:</strong> Puedes aumentar/disminuir la deuda o el adelanto fácilmente con los botones + / -.
+    </div>
+
+    <div class="card">
+        <div class="card-title">👤 Administrar Personas</div>
+        <div class="form-grid">
+            <div class="field-group">
+                <label>Nombre completo</label>
+                <input type="text" id="nuevaPersonaNombre" placeholder="Ej: Juan Pérez">
+            </div>
+            <div class="field-group">
+                <label>Teléfono</label>
+                <input type="text" id="nuevaPersonaTelefono" placeholder="Ej: 555-1234">
+            </div>
+            <div class="field-group">
+                <label>Deuda inicial</label>
+                <input type="number" id="deudaInicial" value="0" min="0" step="100">
+            </div>
+            <div class="field-group">
+                <label>&nbsp;</label>
+                <button id="agregarPersonaBtn" class="btn-success">➕ Agregar nueva persona</button>
+            </div>
         </div>
     </div>
 
     <div class="stats-card" id="statsContainer">
         <div class="stat-item">
-            <div class="stat-label">Total deudores</div>
+            <div class="stat-label">Total personas</div>
             <div class="stat-value" id="totalPersonas">0</div>
         </div>
         <div class="stat-item">
-            <div class="stat-label">Deuda total</div>
+            <div class="stat-label">Deuda acumulada</div>
             <div class="stat-value" id="totalDeuda">$0</div>
         </div>
         <div class="stat-item">
@@ -361,24 +442,26 @@
     </div>
 
     <div class="card">
-        <div class="card-title">📋 Lista de personas</div>
+        <div class="card-title">📋 Estado de cuentas</div>
         <div class="table-wrapper">
             <table id="deudasTable">
-                <thead id="tableHeader">
-                    <tr id="headerRow">
+                <thead>
+                    <tr>
                         <th>#</th>
                         <th>Nombre</th>
                         <th>Teléfono</th>
-                        <th>Deuda Total</th>
-                        <th>Adelanto</th>
-                        <th>Saldo pendiente</th>
+                        <th>Total Copias</th>
+                        <th>Total Impresiones</th>
+                        <th>Deuda total</th>
+                        <th>Adelantos</th>
+                        <th>Saldo</th>
                         <th>Estado</th>
-                        <th>Ajustes</th>
+                        <th>Historial</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr class="empty-row"><td colspan="9">No hay personas registradas. Agrega una nueva persona.</td></tr>
+                    <tr class="empty-row"><td colspan="11">No hay personas registradas. Agrega una nueva persona.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -388,18 +471,14 @@
 <script>
     let personas = [];
     let nextId = 1;
-    const STORAGE_KEY = 'gestion_deudas_personas';
-    
-    // Guardar en localStorage
+    const PRECIO_COPIA = 0.08;
+    const PRECIO_IMPRESION = 0.20;
+    const STORAGE_KEY = 'gestion_copias_impresiones';
+
     function guardarEnStorage() {
-        const dataToSave = {
-            personas: personas,
-            nextId: nextId
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ personas, nextId }));
     }
-    
-    // Cargar desde localStorage
+
     function cargarDesdeStorage() {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
@@ -408,155 +487,181 @@
                 personas = parsed.personas || [];
                 nextId = parsed.nextId || 1;
                 return true;
-            } catch(e) {
-                console.error("Error al cargar datos:", e);
-                return false;
-            }
+            } catch(e) { return false; }
         }
         return false;
     }
-    
-    // Reiniciar todos los datos
-    function reiniciarDatos() {
-        if (confirm("⚠️ ¿Estás seguro de que quieres REINICIAR todos los datos? Se perderá toda la información de deudas.")) {
-            personas = [];
-            nextId = 1;
-            localStorage.removeItem(STORAGE_KEY);
-            renderizarTabla();
-            actualizarEstadisticas();
-            alert("✅ Datos reiniciados correctamente.");
-        }
-    }
 
-    const nombreInput = document.getElementById('nombre');
-    const telefonoInput = document.getElementById('telefono');
-    const deudaTotalInput = document.getElementById('deudaTotal');
-    const adelantoInput = document.getElementById('adelanto');
-    const agregarBtn = document.getElementById('agregarBtn');
-    const tableBody = document.getElementById('tableBody');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-    const resetStorageBtn = document.getElementById('resetStorageBtn');
-
-    // Buscar persona existente por nombre (ignorando mayúsculas/minúsculas y espacios)
-    function findPersonaByNombre(nombre) {
-        const nombreNormalizado = nombre.trim().toLowerCase();
-        return personas.find(p => p.nombre.trim().toLowerCase() === nombreNormalizado);
+    function actualizarSelectPersonas() {
+        const select = document.getElementById('personaSelect');
+        select.innerHTML = '<option value="">-- Seleccionar o crear nueva --</option>' + 
+            personas.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)} ${p.telefono ? `(${p.telefono})` : ''} - Saldo: $${(p.deudaTotal - p.adelantoTotal).toLocaleString()}</option>`).join('');
     }
 
     function agregarPersona() {
-        let nombre = nombreInput.value.trim();
-        if (nombre === "") { 
-            alert("Por favor ingresa el nombre de la persona."); 
-            return; 
+        const nombre = document.getElementById('nuevaPersonaNombre').value.trim();
+        if (!nombre) { alert("Ingresa el nombre"); return; }
+        const telefono = document.getElementById('nuevaPersonaTelefono').value.trim();
+        const deudaInicial = parseFloat(document.getElementById('deudaInicial').value) || 0;
+        
+        if (personas.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+            alert("Ya existe una persona con ese nombre");
+            return;
         }
         
-        const telefono = telefonoInput.value.trim();
-        let deudaTotal = parseFloat(deudaTotalInput.value);
-        let adelanto = parseFloat(adelantoInput.value);
+        personas.push({
+            id: nextId++,
+            nombre: nombre,
+            telefono: telefono,
+            totalCopias: 0,
+            totalImpresiones: 0,
+            deudaTotal: deudaInicial,
+            adelantoTotal: 0,
+            historial: []
+        });
         
-        if (isNaN(deudaTotal)) deudaTotal = 0;
-        if (isNaN(adelanto)) adelanto = 0;
+        guardarEnStorage();
+        actualizarSelectPersonas();
+        renderizarTabla();
+        actualizarEstadisticas();
         
-        if (deudaTotal < 0) deudaTotal = 0;
-        if (adelanto < 0) adelanto = 0;
-        
-        const existente = findPersonaByNombre(nombre);
-        
-        if (existente) {
-            // Si ya existe, actualizamos sus datos
-            if (confirm(`⚠️ "${nombre}" ya existe. ¿Deseas actualizar sus datos?`)) {
-                existente.telefono = telefono || existente.telefono;
-                existente.deudaTotal = deudaTotal;
-                existente.adelanto = adelanto;
-                guardarEnStorage();
-                renderizarTabla();
-                actualizarEstadisticas();
-                alert(`✅ Datos de "${nombre}" actualizados correctamente.`);
-            }
-        } else {
-            // Crear nueva persona
-            const nuevaPersona = {
-                id: nextId++,
-                nombre: nombre,
-                telefono: telefono,
-                deudaTotal: deudaTotal,
-                adelanto: adelanto
-            };
-            personas.push(nuevaPersona);
-            guardarEnStorage();
-            renderizarTabla();
-            actualizarEstadisticas();
-            alert(`✅ "${nombre}" agregado correctamente.`);
-        }
-        
-        // Limpiar campos
-        nombreInput.value = "";
-        telefonoInput.value = "";
-        deudaTotalInput.value = "0";
-        adelantoInput.value = "0";
+        document.getElementById('nuevaPersonaNombre').value = '';
+        document.getElementById('nuevaPersonaTelefono').value = '';
+        document.getElementById('deudaInicial').value = '0';
+        alert(`✅ "${nombre}" agregado correctamente`);
     }
 
-    function eliminarPersona(idPersona) {
-        const persona = personas.find(p => p.id === idPersona);
-        if (persona && confirm(`¿Eliminar a "${persona.nombre}"? Se perderán todos sus datos.`)) {
-            personas = personas.filter(p => p.id !== idPersona);
+    function registrarConsumo() {
+        const personaId = parseInt(document.getElementById('personaSelect').value);
+        if (!personaId) { alert("Selecciona una persona"); return; }
+        
+        const persona = personas.find(p => p.id === personaId);
+        if (!persona) { alert("Persona no encontrada"); return; }
+        
+        let copias = parseInt(document.getElementById('copias').value) || 0;
+        let impresiones = parseInt(document.getElementById('impresiones').value) || 0;
+        let adelantoDia = parseFloat(document.getElementById('adelantoDia').value) || 0;
+        let fecha = document.getElementById('fechaRegistro').value;
+        
+        if (!fecha) {
+            fecha = new Date().toISOString().split('T')[0];
+        }
+        
+        if (copias === 0 && impresiones === 0 && adelantoDia === 0) {
+            alert("Debes registrar al menos copias, impresiones o un adelanto");
+            return;
+        }
+        
+        const montoCopias = copias * PRECIO_COPIA;
+        const montoImpresiones = impresiones * PRECIO_IMPRESION;
+        const totalConsumo = montoCopias + montoImpresiones;
+        
+        persona.totalCopias += copias;
+        persona.totalImpresiones += impresiones;
+        persona.deudaTotal += totalConsumo;
+        persona.adelantoTotal += adelantoDia;
+        
+        persona.historial.push({
+            fecha: fecha,
+            copias: copias,
+            impresiones: impresiones,
+            consumoTotal: totalConsumo,
+            adelanto: adelantoDia,
+            saldoResultante: persona.deudaTotal - persona.adelantoTotal
+        });
+        
+        guardarEnStorage();
+        actualizarSelectPersonas();
+        renderizarTabla();
+        actualizarEstadisticas();
+        
+        document.getElementById('copias').value = '0';
+        document.getElementById('impresiones').value = '0';
+        document.getElementById('adelantoDia').value = '0';
+        
+        alert(`✅ Registrado: ${copias} copias ($${montoCopias}) + ${impresiones} impresiones ($${montoImpresiones}) = $${totalConsumo} | Adelanto: $${adelantoDia} | Nuevo saldo: $${(persona.deudaTotal - persona.adelantoTotal).toLocaleString()}`);
+    }
+
+    function eliminarPersona(id) {
+        const persona = personas.find(p => p.id === id);
+        if (persona && confirm(`¿Eliminar a "${persona.nombre}" y todo su historial?`)) {
+            personas = personas.filter(p => p.id !== id);
             guardarEnStorage();
+            actualizarSelectPersonas();
             renderizarTabla();
             actualizarEstadisticas();
         }
     }
 
-    function ajustarDeuda(idPersona, delta) {
-        const persona = personas.find(p => p.id === idPersona);
+    function verHistorial(persona) {
+        if (!persona.historial || persona.historial.length === 0) {
+            alert(`${persona.nombre} no tiene registros aún`);
+            return;
+        }
+        
+        let historyHtml = '<div class="history-log">';
+        persona.historial.slice().reverse().forEach(h => {
+            historyHtml += `<div class="history-item">
+                📅 ${h.fecha} | 
+                🖨️ Copias: ${h.copias} ($${(h.copias * PRECIO_COPIA).toFixed(2)}) | 
+                📄 Impresiones: ${h.impresiones} ($${(h.impresiones * PRECIO_IMPRESION).toFixed(2)}) | 
+                💰 Consumo: $${h.consumoTotal.toFixed(2)} | 
+                💵 Adelanto: $${h.adelanto.toFixed(2)} | 
+                💲 Saldo: $${h.saldoResultante.toFixed(2)}
+            </div>`;
+        });
+        historyHtml += '</div>';
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close-modal" style="float:right; cursor:pointer;">&times;</span>
+                <div class="modal-header">📜 Historial de ${escapeHtml(persona.nombre)}</div>
+                ${historyHtml}
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('.close-modal').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    }
+
+    function ajustarAdelantoDirecto(id, delta) {
+        const persona = personas.find(p => p.id === id);
         if (!persona) return;
-        let nuevo = persona.deudaTotal + delta;
+        let nuevo = persona.adelantoTotal + delta;
         if (nuevo < 0) {
-            if (confirm(`La deuda quedaría negativa (${nuevo}). ¿Deseas establecerla en 0?`)) {
-                persona.deudaTotal = 0;
+            if (confirm(`El adelanto quedaría negativo ($${nuevo}). ¿Deseas establecerlo en 0?`)) {
+                nuevo = 0;
             } else {
                 return;
             }
-        } else {
-            persona.deudaTotal = nuevo;
         }
+        
+        const diferencia = nuevo - persona.adelantoTotal;
+        persona.adelantoTotal = nuevo;
+        
+        persona.historial.push({
+            fecha: new Date().toISOString().split('T')[0],
+            copias: 0,
+            impresiones: 0,
+            consumoTotal: 0,
+            adelanto: diferencia,
+            saldoResultante: persona.deudaTotal - persona.adelantoTotal,
+            nota: "Ajuste manual de adelanto"
+        });
+        
         guardarEnStorage();
+        actualizarSelectPersonas();
         renderizarTabla();
         actualizarEstadisticas();
-    }
-
-    function ajustarAdelanto(idPersona, delta) {
-        const persona = personas.find(p => p.id === idPersona);
-        if (!persona) return;
-        let nuevo = persona.adelanto + delta;
-        if (nuevo < 0) {
-            if (confirm(`El adelanto quedaría negativo (${nuevo}). ¿Deseas establecerlo en 0?`)) {
-                persona.adelanto = 0;
-            } else {
-                return;
-            }
-        } else {
-            persona.adelanto = nuevo;
-        }
-        guardarEnStorage();
-        renderizarTabla();
-        actualizarEstadisticas();
-    }
-
-    function calcularSaldo(persona) {
-        return persona.deudaTotal - persona.adelanto;
-    }
-
-    function getEstadoPersona(saldo) {
-        if (saldo <= 0) return { texto: "✓ SALDADO", clase: "badge-adelanto" };
-        if (saldo > 0 && saldo <= persona.deudaTotal * 0.3) return { texto: "🟡 PRÓXIMO A PAGAR", clase: "badge" };
-        return { texto: "🔴 PENDIENTE", clase: "badge-deuda" };
     }
 
     function actualizarEstadisticas() {
         const totalPersonas = personas.length;
         const totalDeuda = personas.reduce((sum, p) => sum + p.deudaTotal, 0);
-        const totalAdelantos = personas.reduce((sum, p) => sum + p.adelanto, 0);
+        const totalAdelantos = personas.reduce((sum, p) => sum + p.adelantoTotal, 0);
         const totalPendiente = totalDeuda - totalAdelantos;
         
         document.getElementById('totalPersonas').innerHTML = totalPersonas;
@@ -567,199 +672,147 @@
 
     function renderizarTabla() {
         if (personas.length === 0) {
-            tableBody.innerHTML = `<tr class="empty-row"><td colspan="9">No hay personas registradas. Agrega una nueva persona.</td></tr>`;
+            document.getElementById('tableBody').innerHTML = '<tr class="empty-row"><td colspan="11">No hay personas registradas. Agrega una nueva persona.</td></tr>';
             return;
         }
         
         let html = '';
         personas.forEach((persona, index) => {
-            const saldo = calcularSaldo(persona);
-            const estado = getEstadoPersona(saldo);
-            const estaPagado = saldo <= 0;
+            const saldo = persona.deudaTotal - persona.adelantoTotal;
+            const estado = saldo <= 0 ? "✓ SALDADO" : (saldo <= persona.deudaTotal * 0.3 ? "🟡 PRÓXIMO" : "🔴 PENDIENTE");
+            const estadoClase = saldo <= 0 ? "badge-adelanto" : (saldo <= persona.deudaTotal * 0.3 ? "badge" : "badge-deuda");
             
-            html += `<tr style="${estaPagado ? 'background-color: #f0fdf4;' : ''}">
-                        <td><strong>${index + 1}</strong></td>
-                        <td><strong>${escapeHtml(persona.nombre)}</strong></td>
-                        <td>${persona.telefono ? escapeHtml(persona.telefono) : '<span class="info-na">—</span>'}</td>
-                        <td>
-                            <div class="amount-counter">
-                                <button class="deuda-decrement-btn" data-id="${persona.id}" data-delta="-500">-500</button>
-                                <button class="deuda-decrement-btn" data-id="${persona.id}" data-delta="-100">-100</button>
-                                <span class="amount-value" style="color:#dc2626;">$${persona.deudaTotal.toLocaleString()}</span>
-                                <button class="deuda-increment-btn" data-id="${persona.id}" data-delta="100">+100</button>
-                                <button class="deuda-increment-btn" data-id="${persona.id}" data-delta="500">+500</button>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="amount-counter">
-                                <button class="adelanto-decrement-btn" data-id="${persona.id}" data-delta="-500">-500</button>
-                                <button class="adelanto-decrement-btn" data-id="${persona.id}" data-delta="-100">-100</button>
-                                <span class="amount-value" style="color:#059669;">$${persona.adelanto.toLocaleString()}</span>
-                                <button class="adelanto-increment-btn" data-id="${persona.id}" data-delta="100">+100</button>
-                                <button class="adelanto-increment-btn" data-id="${persona.id}" data-delta="500">+500</button>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge badge-saldo" style="font-weight:700; font-size:0.85rem;">
-                                $${saldo.toLocaleString()}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge ${estado.clase}">${estado.texto}</span>
-                        </td>
-                        <td>
-                            <div class="amount-counter">
-                                <button class="deuda-increment-btn" data-id="${persona.id}" data-delta="1000" style="background:#dc2626; color:white;">+1k</button>
-                                <button class="adelanto-increment-btn" data-id="${persona.id}" data-delta="1000" style="background:#059669; color:white;">+1k</button>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons-group">
-                                <button class="icon-btn delete-btn" data-id="${persona.id}" title="Eliminar">🗑️ Eliminar</button>
-                            </div>
-                        </td>
-                     </tr>`;
+            html += `<tr style="${saldo <= 0 ? 'background-color: #f0fdf4;' : ''}">
+                <td>${index + 1}</td>
+                <td><strong>${escapeHtml(persona.nombre)}</strong></td>
+                <td>${persona.telefono ? escapeHtml(persona.telefono) : '—'}</td>
+                <td>${persona.totalCopias.toLocaleString()}</td>
+                <td>${persona.totalImpresiones.toLocaleString()}</td>
+                <td style="color:#dc2626;">$${persona.deudaTotal.toLocaleString()}</td>
+                <td style="color:#059669;">$${persona.adelantoTotal.toLocaleString()}</td>
+                <td><strong>$${saldo.toLocaleString()}</strong></td>
+                <td><span class="badge ${estadoClase}">${estado}</span></td>
+                <td>
+                    <button class="icon-btn btn-info" data-ver="${persona.id}" style="background:#3b82f6; color:white; padding:4px 10px;">📜 Ver</button>
+                </td>
+                <td>
+                    <div class="action-buttons-group">
+                        <button class="icon-btn adelanto-btn" data-id="${persona.id}" data-delta="500" style="background:#059669; color:white;">+500</button>
+                        <button class="icon-btn adelanto-btn" data-id="${persona.id}" data-delta="100" style="background:#059669; color:white;">+100</button>
+                        <button class="icon-btn delete-btn" data-id="${persona.id}">🗑️</button>
+                    </div>
+                </td>
+            </tr>`;
         });
         
-        tableBody.innerHTML = html;
+        document.getElementById('tableBody').innerHTML = html;
         
-        // Eventos para ajustar deuda
-        document.querySelectorAll('.deuda-increment-btn, .deuda-decrement-btn').forEach(btn => {
+        document.querySelectorAll('.adelanto-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                ajustarDeuda(parseInt(btn.dataset.id), parseInt(btn.dataset.delta));
+                ajustarAdelantoDirecto(parseInt(btn.dataset.id), parseInt(btn.dataset.delta));
             });
         });
         
-        // Eventos para ajustar adelanto
-        document.querySelectorAll('.adelanto-increment-btn, .adelanto-decrement-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                ajustarAdelanto(parseInt(btn.dataset.id), parseInt(btn.dataset.delta));
-            });
-        });
-        
-        // Eventos para eliminar
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => eliminarPersona(parseInt(btn.dataset.id)));
         });
+        
+        document.querySelectorAll('[data-ver]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const persona = personas.find(p => p.id === parseInt(btn.dataset.ver));
+                if (persona) verHistorial(persona);
+            });
+        });
     }
 
+    function exportToExcel() {
+        if (personas.length === 0) { alert("No hay datos"); return; }
+        const wb = XLSX.utils.book_new();
+        
+        const headers = ["#", "Nombre", "Teléfono", "Total Copias", "Total Impresiones", "Deuda Total", "Adelantos", "Saldo", "Estado"];
+        const rows = personas.map((p, i) => {
+            const saldo = p.deudaTotal - p.adelantoTotal;
+            const estado = saldo <= 0 ? "SALDADO" : (saldo <= p.deudaTotal * 0.3 ? "PRÓXIMO" : "PENDIENTE");
+            return [i+1, p.nombre, p.telefono || "---", p.totalCopias, p.totalImpresiones, p.deudaTotal, p.adelantoTotal, saldo, estado];
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        ws['!cols'] = [{ wch:6 }, { wch:25 }, { wch:15 }, { wch:12 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:12 }];
+        
+        const finalData = [
+            [`REPORTE DE COPIAS E IMPRESIONES`],
+            [`Fecha: ${new Date().toLocaleString()}`],
+            [`Precio copia: $${PRECIO_COPIA} | Precio impresión: $${PRECIO_IMPRESION}`],
+            [`Total personas: ${personas.length}`],
+            [`Deuda total: $${personas.reduce((s,p)=>s+p.deudaTotal,0).toLocaleString()}`],
+            [`Adelantos total: $${personas.reduce((s,p)=>s+p.adelantoTotal,0).toLocaleString()}`],
+            [`Saldo pendiente: $${(personas.reduce((s,p)=>s+p.deudaTotal,0)-personas.reduce((s,p)=>s+p.adelantoTotal,0)).toLocaleString()}`],
+            [], ...ws
+        ];
+        
+        const finalWs = XLSX.utils.aoa_to_sheet(finalData);
+        XLSX.utils.book_append_sheet(wb, finalWs, "Deudas");
+        XLSX.writeFile(wb, `copias_impresiones_${new Date().toISOString().slice(0,19)}.xlsx`);
+    }
+
+    async function exportToPDF() {
+        if (personas.length === 0) { alert("No hay datos"); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        
+        const tableRows = personas.map((p, i) => {
+            const saldo = p.deudaTotal - p.adelantoTotal;
+            const estado = saldo <= 0 ? "SALDADO" : (saldo <= p.deudaTotal * 0.3 ? "PRÓXIMO" : "PENDIENTE");
+            return [(i+1).toString(), p.nombre, p.telefono || "---", p.totalCopias.toString(), p.totalImpresiones.toString(), `$${p.deudaTotal.toLocaleString()}`, `$${p.adelantoTotal.toLocaleString()}`, `$${saldo.toLocaleString()}`, estado];
+        });
+        
+        doc.setFontSize(14);
+        doc.text("Reporte de Copias e Impresiones", 14, 20);
+        doc.setFontSize(9);
+        doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 30);
+        doc.text(`Precios: Copia $${PRECIO_COPIA} | Impresión $${PRECIO_IMPRESION}`, 14, 37);
+        
+        doc.autoTable({
+            head: [["#", "Nombre", "Teléfono", "Copias", "Impresiones", "Deuda", "Adelantos", "Saldo", "Estado"]],
+            body: tableRows,
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontSize: 8 },
+            bodyStyles: { fontSize: 7 },
+            columnStyles: { 0: { cellWidth:10 }, 1: { cellWidth:35 }, 2: { cellWidth:20 }, 3: { cellWidth:15 }, 4: { cellWidth:15 }, 5: { cellWidth:18 }, 6: { cellWidth:18 }, 7: { cellWidth:18 }, 8: { cellWidth:18 } }
+        });
+        doc.save(`copias_impresiones_${new Date().toISOString().slice(0,19)}.pdf`);
+    }
+
+    function reiniciarDatos() {
+        if (confirm("⚠️ ¿Reiniciar todos los datos? Se perderá toda la información.")) {
+            personas = [];
+            nextId = 1;
+            localStorage.removeItem(STORAGE_KEY);
+            actualizarSelectPersonas();
+            renderizarTabla();
+            actualizarEstadisticas();
+            alert("✅ Datos reiniciados");
+        }
+    }
+
+    cargarDesdeStorage();
+    actualizarSelectPersonas();
+    renderizarTabla();
+    actualizarEstadisticas();
+    
+    document.getElementById('fechaRegistro').value = new Date().toISOString().split('T')[0];
+    
+    document.getElementById('agregarPersonaBtn').addEventListener('click', agregarPersona);
+    document.getElementById('registrarBtn').addEventListener('click', registrarConsumo);
+    document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+    document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
+    document.getElementById('resetStorageBtn').addEventListener('click', reiniciarDatos);
+    
     function escapeHtml(str) { 
         if(!str) return '';
         return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); 
     }
-
-    function exportToExcel() {
-        if (personas.length === 0) { alert("No hay datos para exportar."); return; }
-        const wb = XLSX.utils.book_new();
-        
-        const headers = ["#", "Nombre", "Teléfono", "Deuda Total", "Adelanto / Abono", "Saldo Pendiente", "Estado"];
-        const rows = personas.map((p, index) => {
-            const saldo = p.deudaTotal - p.adelanto;
-            const estado = saldo <= 0 ? "SALDADO" : (saldo > 0 && saldo <= p.deudaTotal * 0.3 ? "PRÓXIMO A PAGAR" : "PENDIENTE");
-            return [
-                index + 1,
-                p.nombre,
-                p.telefono || "---",
-                p.deudaTotal,
-                p.adelanto,
-                saldo,
-                estado
-            ];
-        });
-        
-        const sheetData = [headers, ...rows];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 6 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
-        
-        const finalSheetData = [
-            [`REPORTE DE DEUDAS Y ADELANTOS`],
-            [`Fecha: ${new Date().toLocaleString()}`],
-            [`Total de personas: ${personas.length}`],
-            [`Deuda total acumulada: $${personas.reduce((sum, p) => sum + p.deudaTotal, 0).toLocaleString()}`],
-            [`Total adelantos: $${personas.reduce((sum, p) => sum + p.adelanto, 0).toLocaleString()}`],
-            [`Saldo pendiente total: $${(personas.reduce((sum, p) => sum + p.deudaTotal, 0) - personas.reduce((sum, p) => sum + p.adelanto, 0)).toLocaleString()}`],
-            [], 
-            ...sheetData
-        ];
-        const finalWs = XLSX.utils.aoa_to_sheet(finalSheetData);
-        finalWs['!cols'] = [{ wch: 8 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
-        if (!finalWs['!merges']) finalWs['!merges'] = [];
-        finalWs['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } });
-        
-        XLSX.utils.book_append_sheet(wb, finalWs, "Deudas");
-        XLSX.writeFile(wb, `deudas_${new Date().toISOString().slice(0,19)}.xlsx`);
-    }
-
-    async function exportToPDF() {
-        if (personas.length === 0) { alert("No hay registros."); return; }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        
-        const tableColumn = ["#", "Nombre", "Teléfono", "Deuda Total", "Adelanto", "Saldo", "Estado"];
-        const tableRows = personas.map((p, index) => {
-            const saldo = p.deudaTotal - p.adelanto;
-            const estado = saldo <= 0 ? "SALDADO" : (saldo > 0 && saldo <= p.deudaTotal * 0.3 ? "PRÓXIMO A PAGAR" : "PENDIENTE");
-            return [
-                (index + 1).toString(),
-                p.nombre,
-                p.telefono || "---",
-                    `$${p.deudaTotal.toLocaleString()}`,
-                `$${p.adelanto.toLocaleString()}`,
-                `$${saldo.toLocaleString()}`,
-                estado
-            ];
-        });
-        
-        const totalDeuda = personas.reduce((sum, p) => sum + p.deudaTotal, 0);
-        const totalAdelanto = personas.reduce((sum, p) => sum + p.adelanto, 0);
-        const totalPendiente = totalDeuda - totalAdelanto;
-        
-        doc.setFontSize(16);
-        doc.text("Reporte de Deudas y Adelantos", 14, 20);
-        doc.setFontSize(10);
-        doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 30);
-        doc.text(`Total de personas: ${personas.length}`, 14, 37);
-        doc.text(`Deuda total: $${totalDeuda.toLocaleString()}`, 14, 44);
-        doc.text(`Total adelantos: $${totalAdelanto.toLocaleString()}`, 80, 44);
-        doc.text(`Saldo pendiente: $${totalPendiente.toLocaleString()}`, 150, 44);
-        
-        doc.autoTable({
-            head: [tableColumn], 
-            body: tableRows, 
-            startY: 52, 
-            theme: 'striped',
-            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontSize: 9, fontStyle: 'bold' },
-            bodyStyles: { fontSize: 8 }, 
-            columnStyles: { 
-                0: { cellWidth: 12 }, 
-                1: { cellWidth: 45 }, 
-                2: { cellWidth: 28 }, 
-                3: { cellWidth: 28 }, 
-                4: { cellWidth: 28 }, 
-                5: { cellWidth: 28 }, 
-                6: { cellWidth: 28 } 
-            },
-            alternateRowStyles: { fillColor: [240, 248, 255] }, 
-            margin: { left: 8, right: 8 }
-        });
-        doc.save(`deudas_${new Date().toISOString().slice(0,19)}.pdf`);
-    }
-
-    // Inicializar
-    cargarDesdeStorage();
-    renderizarTabla();
-    actualizarEstadisticas();
-    
-    agregarBtn.addEventListener('click', agregarPersona);
-    exportExcelBtn.addEventListener('click', exportToExcel);
-    exportPdfBtn.addEventListener('click', exportToPDF);
-    resetStorageBtn.addEventListener('click', reiniciarDatos);
-    
-    // Permitir Enter en campos para agregar
-    nombreInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') agregarPersona(); });
-    telefonoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') agregarPersona(); });
 </script>
 </body>
 </html>
